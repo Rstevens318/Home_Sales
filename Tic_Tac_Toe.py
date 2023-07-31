@@ -10,7 +10,7 @@ class Players(NamedTuple):
 class Move(NamedTuple):
     row: int
     col: int
-    label: str = " "
+    label: str = ""
 
 BOARD_SIZE = 3
 DEFAULT_PLAYERS = (
@@ -21,9 +21,9 @@ DEFAULT_PLAYERS = (
 
 class TicTacToe:
     def __init__(self, players=DEFAULT_PLAYERS, board_size=BOARD_SIZE):
-        self.players = cycle(players)
+        self._players = cycle(players)
         self.board_size = board_size
-        self.current_player = next(self.players)
+        self.current_player = next(self._players)
         self.winner_combo = []
         self._current_moves = []
         self._has_winner = False
@@ -52,7 +52,7 @@ class TicTacToe:
 
     def is_valid_move(self, move):
         row, col = move.row, move.col
-        move_not_played =  self._current_moves[row][col].label == " "
+        move_not_played =  self._current_moves[row][col].label == ""
         no_winner = not self._has_winner
         return move_not_played and no_winner
 
@@ -61,7 +61,7 @@ class TicTacToe:
         self._current_moves[row][col] = move
         for combo in self._winning_combos:
             results = set(self._current_moves[n][m].label for n, m in combo)
-            is_winner = (len(results) == 1) and (' ' not in results)
+            is_winner = (len(results) == 1) and ("" not in results)
             if is_winner:
                 self._has_winner = True
                 self.winner_combo = combo
@@ -109,7 +109,7 @@ class Board(tk.Tk):
         display_frame.pack(fill=tk.X)
         self.display = tk.Label(
             master=display_frame,
-            text=f"{self._game.current_player.label}'s turn",
+            text="Ready to play!",
             font=font.Font(size=24),
         )
         self.display.pack()
@@ -123,14 +123,16 @@ class Board(tk.Tk):
             for col in range(self._game.board_size):
                 button = tk.Button(
                     master=grid_frame,
-                    text=" ",
+                    text="",
                     font=font.Font(size=24),
                     width=3,
                     height=2,
+                    highlightbackground="blue",
                 )
                 self._cells[button] = (row, col)
-                button.grid(row=row, column=col, sticky="nsew")
-                button.bind("<Enter>", self.play)
+                button.bind("<ButtonPress-1>", self.play)
+                button.grid(row=row, column=col, padx=5, pady=5, sticky="nsew")
+               
 
     def play(self, event):
         clicked_button = event.widget
@@ -140,7 +142,7 @@ class Board(tk.Tk):
             self._update_button(clicked_button)
             self._game.is_game_over(move)
             if self._game.is_tie():
-                self._update_display(text="It's a tie!")
+                self._update_display(msg="It's a tie!")
             elif self._game.has_winner():
                 self._highlight_winning_combo()
                 msg = f"{self._game.current_player.label} won!"
@@ -148,9 +150,8 @@ class Board(tk.Tk):
                 self._update_display(msg, color)
             else:
                 self._game.toggle_player()
-                self._update_display(
-                    f"{self._game.current_player.label}'s turn"
-                )
+                msg = f"Player {self._game.current_player.label}'s turn"
+                self._update_display(msg)
 
     def _update_button(self, clicked_button):
         clicked_button.config(text=self._game.current_player.label)
@@ -162,16 +163,16 @@ class Board(tk.Tk):
 
     def _highlight_winning_combo(self):
         for button, coordinates in self._cells.items():
-            row, col = coordinates
-            if (row, col) in self._game.winner_combo:
-                button.config(bg="green")
+            
+            if coordinates in self._game.winner_combo:
+                button.config(highlightbackground="green")
 
     def _new_game(self):
-        self._game.reset_game()
-        self._update_display(msg= 'Reset Ready!')
+        self._game.reset()
+        self._update_display(msg= 'Ready!')
         for button in self._cells.keys():
             button.config(highlightbackground="blue")
-            button.config(text=" ")
+            button.config(text="")
             button.config(fg="black")
 
 def main():
